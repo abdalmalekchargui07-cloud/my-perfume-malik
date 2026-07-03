@@ -27,6 +27,19 @@ app.get('/', (req, res) => {
     });
 });
 
+app.get('/admin', (req, res) => {
+    res.sendFile('admin.html', { root: __dirname }, (err) => {
+        if (err) {
+            // إذا كان اسم الملف لديك dashboard.html جرب قراءته هنا
+            res.sendFile('dashboard.html', { root: __dirname }, (err2) => {
+                if (err2) {
+                    res.status(404).send("لم يتم العثور على ملف لوحة التحكم، تأكد من وجود الملف وتسميته الصحيحة في المجلد.");
+                }
+            });
+        }
+    });
+});
+
 // الاتصال بقاعدة البيانات على المنفذ 3307
 const db = mysql.createConnection({
     host: 'mysql-23a1db40-abdalmalekchargui07-5242.f.aivencloud.com',
