@@ -129,8 +129,10 @@ app.delete('/api/products/:id', (req, res) => {
 });
 
 // --- كود نظام إشعارات الواتساب الفوري ---
+// --- كود نظام إشعارات الواتساب الفوري المطور ---
 const { default: makeWASocket, useMultiFileAuthState } = require('@whiskeysockets/baileys');
-const qrcode = require('qrcode-terminal');
+const fs = require('fs');
+const QRCodeImage = require('qrcode'); // تأكد من تثبيتها عبر npm i qrcode
 
 let sock;
 
@@ -143,12 +145,18 @@ async function connectToWhatsApp() {
 
     sock.ev.on('creds.update', saveCreds);
 
-    sock.ev.on('connection.update', (update) => {
+    sock.ev.on('connection.update', async (update) => {
         const { connection, qr } = update;
         
         if (qr) {
-            console.log('\n📱 === امسح كود الـ QR هذا عبر واتساب بهاتفك الآن ===\n');
-            qrcode.generate(qr, { small: true });
+            console.log('\n📱 === جاري تحديث صورة الـ QR للواتساب ===\n');
+            // حفظ الكود كصورة واضحة في المجلد الرئيسي للمشروع
+            try {
+                await QRCodeImage.toFile('./qr.png', qr);
+                console.log('✅ تم حفظ الكود بنجاح كصورة! يمكنك رؤيتها الآن عبر الرابط: your-site.onrender.com/get-qr');
+            } catch (err) {
+                console.error('خطأ في توليد صورة QR:', err);
+            }
         }
         
         if (connection === 'close') {
@@ -156,9 +164,24 @@ async function connectToWhatsApp() {
             connectToWhatsApp();
         } else if (connection === 'open') {
             console.log('✅ سيرفر الواتساب متصل الآن وجاهز لإرسال الطلبات في الخلفية!');
+            // حذف الصورة بعد الاتصال الناجح للأمان
+            if (fs.existsSync('./qr.png')) fs.unlinkSync('./qr.png');
         }
     });
 }
+
+// مسار سري ومؤقت لفتح الصورة ومسحها من الهاتف
+app.get('/get-qr', (req, res) => {
+    const qrPath = path.join(__dirname, 'qr.png');
+    if (fs.existsSync(qrPath)) {
+        res.sendFile(qrPath);
+    } else {
+        res.send("<h1>الواتساب متصل بالفعل أو لم يتم توليد الكود بعد. إذا كان منفصلاً، انتظر دقيقة وأعد تحديث الصفحة.</h1>");
+    }
+});
+
+// تشغيل الواتساب تلقائياً
+connectToWhatsApp();
 
 // تشغيل الواتساب تلقائياً
 connectToWhatsApp();
