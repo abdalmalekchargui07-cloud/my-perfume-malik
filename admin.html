@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <title>تسجيل الدخول - لوحة التحكم</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #fdfbf7;
+            padding: 30px;
+            color: #2c2520;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 90vh;
+        }
+
+        /* شاشة تسجيل الدخول */
+        .login-box {
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        /* لوحة التحكم الاصلية */
+        .container {
+            display: none;
+            max-width: 900px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            width: 100%;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            text-align: right;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e6dfd3;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background: #c5a059;
+            color: #fff;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background: #b08e4f;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 30px;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            border: 1px solid #e6dfd3;
+            text-align: center;
+        }
+
+        th {
+            background: #f5f0e6;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            padding: 5px 10px;
+            font-size: 14px;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-edit {
+            background: #007bff;
+            padding: 5px 10px;
+            font-size: 14px;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+
+        .btn-cancel {
+            background: #6c757d;
+            color: white;
+            margin-top: 5px;
+            display: none; /* يظهر فقط عند التعديل */
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="loginSection" class="login-box">
+        <h2 style="color: #c5a059;">قفل الأمان للمتجر 🔒</h2>
+        <p>الرجاء إدخال كلمة المرور لدخول لوحة التحكم:</p>
+        <div class="form-group">
+            <input type="password" id="passwordInput" placeholder="كلمة المرور هنا">
+        </div>
+        <button onclick="checkPassword()">دخول</button>
+    </div>
+
+    <div id="adminContainer" class="container">
+        <h1>لوحة تحكم إدارة متجر Parfum MALIK 👑</h1>
+        <form id="productForm">
+            <div class="form-group">
+                <label>اسم العطر:</label>
+                <input type="text" id="prod-name" required>
+            </div>
+            <div class="form-group">
+                <label>السعر (بالدرهم):</label>
+                <input type="text" id="prod-price" required>
+            </div>
+            <div class="form-group">
+                <label>رابط صورة العطر (URL):</label>
+                <input type="text" id="prod-image" required>
+            </div>
+
+            <div class="form-group">
+                <label>القسم الرئيسي للعطر:</label>
+                <select id="prod-main-category" required>
+                    <option value="best-seller">أكثر مبيعاً</option>
+                    <option value="nos-parfums">عطورنا (Nos Parfums)</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="sub-category-wrapper">
+                <label>تحديد الفئة المستهدفة (رجال / نساء):</label>
+                <select id="prod-sub-category" required>
+                    <option value="homme">مجموعة الرجال (Pour Homme)</option>
+                    <option value="femme">مجموعة النساء (Pour Femme)</option>
+                </select>
+            </div>
+            <button type="submit" id="submitBtn">حفظ المنتج</button>
+            <button type="button" id="cancelEditBtn" class="btn-cancel" onclick="resetFormState()">إلغاء التعديل</button>
+        </form>
+
+        <h2>قائمة العطور الحالية بالموقع</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>الصورة</th>
+                    <th>الاسم</th>
+                    <th>السعر</th>
+                    <th>التصنيف</th>
+                    <th>إجراءات</th>
+                </tr>
+            </thead>
+            <tbody id="productsTableBody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        const SECRET_PASSWORD = "Malik2026";
+        const API_URL = 'http://localhost:3000/api/products';
+        
+        // متغيرات لتتبع حالة التعديل
+        let allProducts = [];
+        let isEditMode = false;
+        let currentEditProductId = null;
+
+        function checkPassword() {
+            const userInput = document.getElementById('passwordInput').value;
+            if (userInput === SECRET_PASSWORD) {
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('adminContainer').style.display = 'block';
+                document.body.style.height = 'auto';
+                loadAdminProducts();
+            } else {
+                alert('❌ كلمة المرور خاطئة! لا يمكنك الدخول.');
+            }
+        }
+
+        async function loadAdminProducts() {
+            try {
+                const response = await fetch(API_URL);
+                allProducts = await response.json(); // حفظ المنتجات محلياً لسهولة الوصول إليها عند التعديل
+                const tableBody = document.getElementById('productsTableBody');
+                tableBody.innerHTML = '';
+                
+                allProducts.forEach(p => {
+                    const row = `
+                        <tr>
+                            <td><img src="${p.image_url}" width="50" style="border-radius:4px;"></td>
+                            <td>${p.name}</td>
+                            <td>${p.price} درهم</td>
+                            <td>${p.category}</td>
+                            <td>
+                                <button class="btn-edit" onclick="startEdit(${p.id})">تعديل</button>
+                                <button class="btn-delete" onclick="deleteProduct(${p.id})">حذف</button>
+                            </td>
+                        </tr>
+                    `;
+                    tableBody.insertAdjacentHTML('beforeend', row);
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // دالة لتجهيز الخانات عند الضغط على زر "تعديل"
+        function startEdit(id) {
+            const product = allProducts.find(p => p.id === id);
+            if (!product) return;
+
+            // ملء الحقول بالبيانات القديمة
+            document.getElementById('prod-name').value = product.name;
+            document.getElementById('prod-price').value = product.price;
+            document.getElementById('prod-image').value = product.image_url;
+
+            // تفكيك وتحليل التصنيف المدمج لإرجاعه إلى القوائم المنسدلة
+            if (product.category.includes('best-seller')) {
+                document.getElementById('prod-main-category').value = 'best-seller';
+                document.getElementById('prod-sub-category').value = product.category.replace('best-seller-', '');
+            } else {
+                document.getElementById('prod-main-category').value = 'nos-parfums';
+                document.getElementById('prod-sub-category').value = product.category.replace('nos-parfums-', '');
+            }
+
+            // تحويل وضع الاستمارة إلى وضع "التعديل"
+            isEditMode = true;
+            currentEditProductId = id;
+            document.getElementById('submitBtn').innerText = 'تحديث بيانات المنتج 🔄';
+            document.getElementById('submitBtn').style.background = '#007bff';
+            document.getElementById('cancelEditBtn').style.display = 'block';
+
+            // الانتقال لأعلى الصفحة إلى خانات الإدخال بسلاسة
+            document.getElementById('productForm').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // دالة لإلغاء التعديل والعودة للوضع الطبيعي الإفتراضي
+        function resetFormState() {
+            isEditMode = false;
+            currentEditProductId = null;
+            document.getElementById('productForm').reset();
+            document.getElementById('submitBtn').innerText = 'حفظ المنتج';
+            document.getElementById('submitBtn').style.background = '#c5a059';
+            document.getElementById('cancelEditBtn').style.display = 'none';
+        }
+
+        // معالجة إرسال الاستمارة (حفظ جديد أو تحديث الحالي)
+        document.getElementById('productForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('prod-name').value;
+            const price = document.getElementById('prod-price').value;
+            const image_url = document.getElementById('prod-image').value;
+            const mainCat = document.getElementById('prod-main-category').value;
+            const subCat = document.getElementById('prod-sub-category').value;
+            let finalCategory = `${mainCat}-${subCat}`;
+
+            // تحديد الرابط وطريقة الطلب بناءً على وضع التعديل أو الحفظ الجديد
+            const url = isEditMode ? `${API_URL}/${currentEditProductId}` : API_URL;
+            const method = isEditMode ? 'PUT' : 'POST';
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, price, category: finalCategory, image_url })
+                });
+
+                if (response.ok) {
+                    alert(isEditMode ? '✅ تم تحديث المنتج بنجاح!' : '✅ تم حفظ المنتج بنجاح!');
+                    resetFormState();
+                    loadAdminProducts();
+                } else {
+                    alert('❌ خطأ أثناء العملية.');
+                }
+            } catch (err) {
+                alert('⚠️ فشل الاتصال بالسيرفر.');
+            }
+        });
+
+        async function deleteProduct(id) {
+            if (confirm('هل تريد حذف هذا العطر؟')) {
+                try {
+                    const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+                    if (response.ok) {
+                        // إذا تم حذف المنتج الذي نقوم بتعديله حالياً، نلغي وضع التعديل فوراً
+                        if(currentEditProductId === id) resetFormState();
+                        loadAdminProducts();
+                    }
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>
