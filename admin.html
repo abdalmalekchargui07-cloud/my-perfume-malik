@@ -206,7 +206,7 @@
 
         async function loadAdminProducts() {
             try {
-                const response = await fetch(API_URL);
+                const response = await fetch('/api/products');
                 allProducts = await response.json(); // حفظ المنتجات محلياً لسهولة الوصول إليها عند التعديل
                 const tableBody = document.getElementById('productsTableBody');
                 tableBody.innerHTML = '';
