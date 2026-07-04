@@ -19,6 +19,7 @@
     "mysql": "^2.18.1",
     "mysql2": "^3.22.5",
     "nodemailer": "^9.0.1",
+    "qrcode": "^1.5.4",
     "qrcode-terminal": "^0.12.0"
   }
 }
